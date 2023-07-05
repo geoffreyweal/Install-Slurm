@@ -395,13 +395,16 @@ As the final thing to do, try this:
 ```
 systemctl stop slurmctld.service
 systemctl stop slurmctld
+systemctl stop slurmdbd
 systemctl stop slurmd
 
 systemctl start slurmd
+systemctl start slurmdbd
 systemctl start slurmctld
 systemctl start slurmctld.service
 
 systemctl status slurmd
+systemctl status slurmdbd
 systemctl status slurmctld
 systemctl status slurmctld.service
 ```
