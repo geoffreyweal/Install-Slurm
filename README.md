@@ -331,63 +331,6 @@ systemctl status slurmctld.service
 ```
 
 
-
-
-Create slurmdbd configuration file:
-
-```
-vim /etc/slurm/slurmdbd.conf
-```
-
-Some variables for ``slurmdbd.conf`` are:
-
-```
-# Authentication info
-AuthType=auth/munge
-
-# slurmDBD info
-DbdAddr=localhost
-DbdHost=localhost
-DbdPort=6819
-SlurmUser=slurm
-DebugLevel=verbose
-LogFile=/var/log/slurm/slurmdbd.log
-#PidFile=/var/run/slurmdbd.pid
-
-# Database info
-StorageType=accounting_storage/mysql
-StorageHost=localhost
-StoragePass=1234
-StorageUser=slurm
-StorageLoc=slurm_acct_db
-```
-
-Set up files and permissions:
-
-```
-chown slurm: /etc/slurm/slurmdbd.conf
-chmod 600 /etc/slurm/slurmdbd.conf
-touch /var/log/slurmdbd.log
-chown slurm: /var/log/slurmdbd.log
-```
-
-Try to run _slurndbd_ manually to see the log:
-
-```
-slurmdbd -D -vvv
-```
-
-Terminate the process by Control+C when the testing is OK.
-
-Start the `slurmdbd` service:
-
-```
-systemctl enable slurmdbd
-systemctl start slurmdbd
-systemctl status slurmdbd
-```
-
-
 ### Setup ``slurmdbd``
 
 Create slurmdbd configuration file:
