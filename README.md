@@ -33,6 +33,8 @@ Remove Slurm and Munge:
 
 ```
 yum remove slurm munge munge-libs munge-devel -y
+rm -rvf /etc/munge
+rm -rvf /nfsshare/slurm-rpms
 ```
 
 Delete the users and corresponding folders:
@@ -122,14 +124,14 @@ Download the latest version of Slurm in the shared folder:
 
 ```
 cd /nfsshare
-wget https://download.schedmd.com/slurm/slurm-19.05.4.tar.bz2
+wget https://download.schedmd.com/slurm/slurm-23.02.3.tar.bz2
 ```
 
 If you don't have `rpmbuild` yet:
 
 ```
 yum install rpm-build
-rpmbuild -ta slurm-19.05.4.tar.bz2
+rpmbuild -ta slurm-23.02.3.tar.bz2
 ```
 
 Check the rpms created by `rpmbuild`:
@@ -180,8 +182,10 @@ chown slurm: /var/spool/slurm/
 chmod 755 /var/spool/slurm/
 touch /var/log/slurmctld.log
 chown slurm: /var/log/slurmctld.log
-touch /var/log/slurm_jobacct.log /var/log/slurm/slurm_jobcomp.log
-chown slurm: /var/log/slurm_jobacct.log /var/log/slurm_jobcomp.log
+touch /var/log/slurm_jobacct.log
+touch /var/log/slurm_jobcomp.log
+chown slurm: /var/log/slurm_jobacct.log
+chown slurm: /var/log/slurm_jobcomp.log
 ```
 
 On the computing nodes __node[1-2]__, make sure that all the computing nodes have the right configurations and files:
@@ -314,6 +318,29 @@ Create slurmdbd configuration file:
 vim /etc/slurm/slurmdbd.conf
 ```
 
+Some variables for ``slurmdbd.conf`` are:
+
+```
+# Authentication info
+AuthType=auth/munge
+
+# slurmDBD info
+DbdAddr=localhost
+DbdHost=localhost
+DbdPort=6819
+SlurmUser=slurm
+DebugLevel=verbose
+LogFile=/var/log/slurm/slurmdbd.log
+PidFile=/var/run/slurmdbd.pid
+
+# Database info
+StorageType=accounting_storage/mysql
+StorageHost=localhost
+StoragePass=1234
+StorageUser=slurm
+StorageLoc=slurm_acct_db
+```
+
 Set up files and permissions:
 
 ```
@@ -321,18 +348,6 @@ chown slurm: /etc/slurm/slurmdbd.conf
 chmod 600 /etc/slurm/slurmdbd.conf
 touch /var/log/slurmdbd.log
 chown slurm: /var/log/slurmdbd.log
-```
-
-Paste the slurmdbd.conf in Configs and paste it into `slurmdbd.conf`.
-
-Some variables are:
-
-```
-DbdAddr=localhost
-DbdHost=localhost
-DbdPort=6819
-StoragePass=1234
-StorageLoc=slurm_acct_db
 ```
 
 Try to run _slurndbd_ manually to see the log:
@@ -356,6 +371,22 @@ On the __master__ node:
 ```
 systemctl enable slurmctld.service
 systemctl start slurmctld.service
+systemctl status slurmctld.service
+```
+
+As the final thing to do, try this:
+
+```
+systemctl stop slurmctld.service
+systemctl stop slurmctld
+systemctl stop slurmd
+
+systemctl start slurmd
+systemctl start slurmctld
+systemctl start slurmctld.service
+
+systemctl status slurmd
+systemctl status slurmctld
 systemctl status slurmctld.service
 ```
 
