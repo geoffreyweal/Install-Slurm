@@ -134,17 +134,17 @@ vim /etc/slurm/slurmdbd.conf
 Some variables for ``slurmdbd.conf`` are:
 
 ```
-# Authentication info	
+# Authentication info
 AuthType=auth/munge
 
 # slurmDBD info
-DbdAddr=localhost	
-DbdHost=localhost	
+DbdAddr=localhost
+DbdHost=localhost
 DbdPort=6819
 SlurmUser=slurm
 DebugLevel=verbose
 LogFile=/var/log/slurm/slurmdbd.log
-PidFile=/var/run/slurmdbd.pid
+#PidFile=/var/run/slurmdbd.pid
 
 # Database info
 StorageType=accounting_storage/mysql
