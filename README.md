@@ -35,7 +35,7 @@ Delete the users and corresponding folders:
 
 ```
 userdel -r slurm
-suerdel -r munge
+userdel -r munge
 ```
 
 ### Create the global users
@@ -43,10 +43,10 @@ suerdel -r munge
 Slurm and Munge require consistent UID and GID across every node in the cluster. For all the nodes, before you install Slurm or Munge:
 
 ```
-export MUNGEUSER=991
+export MUNGEUSER=1991
 groupadd -g $MUNGEUSER munge
 useradd  -m -c "MUNGE Uid 'N' Gid Emporium" -d /var/lib/munge -u $MUNGEUSER -g munge  -s /sbin/nologin munge
-export SLURMUSER=992
+export SLURMUSER=1992
 groupadd -g $SLURMUSER slurm
 useradd  -m -c "SLURM workload manager" -d /var/lib/slurm -u $SLURMUSER -g slurm  -s /bin/bash slurm
 ```
