@@ -34,7 +34,9 @@ Remove Slurm and Munge:
 ```
 yum remove slurm munge munge-libs munge-devel -y
 rm -rvf /etc/munge
+rm -rvf /var/log/munge
 rm -rvf /nfsshare/slurm-rpms
+rm -rvf /var/log/tallylog
 ```
 
 Delete the users and corresponding folders:
@@ -55,6 +57,124 @@ useradd  -m -c "MUNGE Uid 'N' Gid Emporium" -d /var/lib/munge -u $MUNGEUSER -g m
 export SLURMUSER=1992
 groupadd -g $SLURMUSER slurm
 useradd  -m -c "SLURM workload manager" -d /var/lib/slurm -u $SLURMUSER -g slurm  -s /bin/bash slurm
+```
+
+### Setting up MariaDB database: master
+
+Install MariaDB:
+
+```
+yum install mariadb-server mariadb-devel -y
+```
+
+Start the MariaDB service:
+
+```
+systemctl enable mariadb
+systemctl start mariadb
+systemctl status mariadb
+```
+
+Create the Slurm database user:
+
+```
+mysql
+```
+
+In mariaDB:
+
+```mysql
+MariaDB[(none)]> GRANT ALL ON slurm_acct_db.* TO 'slurm'@'localhost' IDENTIFIED BY '1234' with grant option;
+MariaDB[(none)]> SHOW VARIABLES LIKE 'have_innodb';
+MariaDB[(none)]> FLUSH PRIVILEGES;
+MariaDB[(none)]> CREATE DATABASE slurm_acct_db;
+MariaDB[(none)]> quit;
+```
+
+Verify the databases grants for the _slurm_ user:
+
+```
+mysql -p -u slurm
+```
+
+Tpye password for slurm: `1234`. In mariaDB:
+
+```mysql
+MariaDB[(none)]> show grants;
+MariaDB[(none)]> quit;
+```
+
+Create a new file /etc/my.cnf.d/innodb.cnf containing:
+```
+[mysqld]
+innodb_buffer_pool_size=1024M
+innodb_log_file_size=64M
+innodb_lock_wait_timeout=900
+```
+To implement this change you have to shut down the database and move/remove logfiles:
+```
+systemctl stop mariadb
+mv /var/lib/mysql/ib_logfile? /tmp/
+systemctl start mariadb
+```
+
+You can check the current setting in MySQL like so:
+```
+MariaDB[(none)]> SHOW VARIABLES LIKE 'innodb_buffer_pool_size';
+```
+
+Create slurmdbd configuration file:
+
+```
+vim /etc/slurm/slurmdbd.conf
+```
+
+Some variables for ``slurmdbd.conf`` are:
+
+```
+# Authentication info
+AuthType=auth/munge
+
+# slurmDBD info
+DbdAddr=localhost
+DbdHost=localhost
+DbdPort=6819
+SlurmUser=slurm
+DebugLevel=verbose
+LogFile=/var/log/slurm/slurmdbd.log
+PidFile=/var/run/slurmdbd.pid
+
+# Database info
+StorageType=accounting_storage/mysql
+StorageHost=localhost
+StoragePass=1234
+StorageUser=slurm
+StorageLoc=slurm_acct_db
+```
+
+Set up files and permissions:
+
+```
+chown slurm: /etc/slurm/slurmdbd.conf
+chmod 600 /etc/slurm/slurmdbd.conf
+touch /var/log/slurmdbd.log
+chown slurm: /var/log/slurmdbd.log
+```
+
+Try to run _slurndbd_ manually to see the log:
+
+```
+slurmdbd -D -vvv
+```
+
+Terminate the process by Control+C when the testing is OK.
+
+Start the `slurmdbd` service:
+
+```
+systemctl enable slurmdbd
+systemctl start slurmdbd
+systemctl status slurmdbd
 ```
 
 ### Install Munge
@@ -248,123 +368,10 @@ systemctl start slurmd.service
 systemctl status slurmd.service
 ```
 
-### Setting up MariaDB database: master
 
-Install MariaDB:
 
-```
-yum install mariadb-server mariadb-devel -y
-```
 
-Start the MariaDB service:
 
-```
-systemctl enable mariadb
-systemctl start mariadb
-systemctl status mariadb
-```
-
-Create the Slurm database user:
-
-```
-mysql
-```
-
-In mariaDB:
-
-```mysql
-MariaDB[(none)]> GRANT ALL ON slurm_acct_db.* TO 'slurm'@'localhost' IDENTIFIED BY '1234' with grant option;
-MariaDB[(none)]> SHOW VARIABLES LIKE 'have_innodb';
-MariaDB[(none)]> FLUSH PRIVILEGES;
-MariaDB[(none)]> CREATE DATABASE slurm_acct_db;
-MariaDB[(none)]> quit;
-```
-
-Verify the databases grants for the _slurm_ user:
-
-```
-mysql -p -u slurm
-```
-
-Tpye password for slurm: `1234`. In mariaDB:
-
-```mysql
-MariaDB[(none)]> show grants;
-MariaDB[(none)]> quit;
-```
-
-Create a new file /etc/my.cnf.d/innodb.cnf containing:
-```
-[mysqld]
-innodb_buffer_pool_size=1024M
-innodb_log_file_size=64M
-innodb_lock_wait_timeout=900
-```
-To implement this change you have to shut down the database and move/remove logfiles:
-```
-systemctl stop mariadb
-mv /var/lib/mysql/ib_logfile? /tmp/
-systemctl start mariadb
-```
-
-You can check the current setting in MySQL like so:
-```
-MariaDB[(none)]> SHOW VARIABLES LIKE 'innodb_buffer_pool_size';
-```
-
-Create slurmdbd configuration file:
-
-```
-vim /etc/slurm/slurmdbd.conf
-```
-
-Some variables for ``slurmdbd.conf`` are:
-
-```
-# Authentication info
-AuthType=auth/munge
-
-# slurmDBD info
-DbdAddr=localhost
-DbdHost=localhost
-DbdPort=6819
-SlurmUser=slurm
-DebugLevel=verbose
-LogFile=/var/log/slurm/slurmdbd.log
-PidFile=/var/run/slurmdbd.pid
-
-# Database info
-StorageType=accounting_storage/mysql
-StorageHost=localhost
-StoragePass=1234
-StorageUser=slurm
-StorageLoc=slurm_acct_db
-```
-
-Set up files and permissions:
-
-```
-chown slurm: /etc/slurm/slurmdbd.conf
-chmod 600 /etc/slurm/slurmdbd.conf
-touch /var/log/slurmdbd.log
-chown slurm: /var/log/slurmdbd.log
-```
-
-Try to run _slurndbd_ manually to see the log:
-
-```
-slurmdbd -D -vvv
-```
-
-Terminate the process by Control+C when the testing is OK.
-
-Start the `slurmdbd` service:
-
-```
-systemctl enable slurmdbd
-systemctl start slurmdbd
-systemctl status slurmdbd
-```
 
 On the __master__ node:
 
