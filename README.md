@@ -23,7 +23,11 @@ Remove database:
 
 ```
 yum remove mariadb-server mariadb-devel -y
+rm -rfv /etc/my.cnf.d
+rm -rfv /var/lib/mysql
 ```
+
+
 
 Remove Slurm and Munge:
 
