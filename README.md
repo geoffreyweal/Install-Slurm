@@ -47,6 +47,14 @@ userdel -r slurm
 userdel -r munge
 ```
 
+### Update your system
+
+To update your system:
+
+```
+sudo yum update
+```
+
 ### Create the global users
 
 Slurm and Munge require consistent UID and GID across every node in the cluster. For all the nodes, before you install Slurm or Munge:
@@ -98,7 +106,7 @@ Verify the databases grants for the _slurm_ user:
 mysql -p -u slurm
 ```
 
-Tpye password for slurm: `1234`. In mariaDB:
+Type password for slurm: `1234`. In mariaDB:
 
 ```mysql
 show grants;
@@ -112,6 +120,7 @@ innodb_buffer_pool_size=1024M
 innodb_log_file_size=64M
 innodb_lock_wait_timeout=900
 ```
+
 To implement this change you have to shut down the database and move/remove logfiles:
 ```
 systemctl stop mariadb
@@ -120,9 +129,10 @@ systemctl start mariadb
 systemctl status mariadb
 ```
 
-You can check the current setting in MySQL like so:
-```
-MariaDB[(none)]> SHOW VARIABLES LIKE 'innodb_buffer_pool_size';
+You can check the current setting in ``sql`` like so:
+```mysql
+SHOW VARIABLES LIKE 'innodb_buffer_pool_size';
+quit;
 ```
 
 ### Install Munge
@@ -173,6 +183,7 @@ chmod 0700 /etc/munge/ /var/log/munge/
 ```
 systemctl enable munge
 systemctl start munge
+systemctl status munge
 ```
 
 To test Munge, try to access another node with Munge from __master__ node:
@@ -212,6 +223,7 @@ Check the rpms created by `rpmbuild`:
 
 ```
 cd /root/rpmbuild/RPMS/x86_64
+ls
 ```
 
 Move the Slurm rpms for installation for all nodes:
@@ -224,6 +236,7 @@ cp * /nfsshare/slurm-rpms
 On every node, install these rpms:
 
 ```
+cd /nfsshare/slurm-rpms
 yum --nogpgcheck localinstall * -y
 ```
 
@@ -237,9 +250,15 @@ Paste the slurm.conf in Configs and paste it into `slurm.conf`.
 
 Notice: we manually add lines under #COMPUTE NODES.
 ```
-NodeName=node1 NodeAddr=10.0.1.6 CPUs=1 State=UNKNOWN
-NodeName=node2 NodeAddr=10.0.1.7 CPUs=1 State=UNKNOWN
+NodeName=node1 NodeAddr=10.0.1.6 CPUs=32 State=UNKNOWN
+NodeName=node2 NodeAddr=10.0.1.7 CPUs=16 State=UNKNOWN
 ```
+
+You can obtain the ip address of your nodes by typing the following into the terminal for your nodes
+```
+ifconfig -a
+```
+Note: These may change over time. In case you have future communication between master and node issues, check this. 
 
 Now the __master__ node has the slurm.conf correctly, we need to send this file to the other compute nodes:
 
@@ -317,6 +336,7 @@ systemctl start ntpd
 On the computing nodes __node[1-2]__:
 
 ```
+systemctl stop slurmd.service
 systemctl enable slurmd.service
 systemctl start slurmd.service
 systemctl status slurmd.service
@@ -325,6 +345,7 @@ systemctl status slurmd.service
 On the __master__ node:
 
 ```
+systemctl stop slurmctld.service
 systemctl enable slurmctld.service
 systemctl start slurmctld.service
 systemctl status slurmctld.service
