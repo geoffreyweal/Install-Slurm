@@ -108,7 +108,8 @@ mysql -p -u slurm
 
 Type password for slurm: `1234`. In mariaDB:
 
-```mysql
+```sql
+mysql
 show grants;
 quit;
 ```
@@ -124,13 +125,14 @@ innodb_lock_wait_timeout=900
 To implement this change you have to shut down the database and move/remove logfiles:
 ```
 systemctl stop mariadb
-mv /var/lib/mysql/ib_logfile? /tmp/
+mv -fv /var/lib/mysql/ib_logfile? /tmp/
 systemctl start mariadb
 systemctl status mariadb
 ```
 
-You can check the current setting in ``sql`` like so:
-```mysql
+You can check the current setting in ``mysql`` like so:
+```sql
+mysql
 SHOW VARIABLES LIKE 'innodb_buffer_pool_size';
 quit;
 ```
