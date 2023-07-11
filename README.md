@@ -108,8 +108,7 @@ mysql -p -u slurm
 
 Type password for slurm: `1234`. In mariaDB:
 
-```sql
-mysql
+```mysql
 show grants;
 quit;
 ```
@@ -281,6 +280,8 @@ touch /var/log/slurm_jobacct.log
 touch /var/log/slurm_jobcomp.log
 chown slurm: /var/log/slurm_jobacct.log
 chown slurm: /var/log/slurm_jobcomp.log
+mkdir -p /var/spool/slurmctld
+chmod 777 /var/spool/slurmctld
 ```
 
 On the computing nodes __node[1-2]__, make sure that all the computing nodes have the right configurations and files:
@@ -332,25 +333,9 @@ Sync clocks on the cluster. On every node:
 yum install ntp -y
 chkconfig ntpd on
 ntpdate pool.ntp.org
+systemctl stop ntpd
 systemctl start ntpd
-```
-
-On the computing nodes __node[1-2]__:
-
-```
-systemctl stop slurmd.service
-systemctl enable slurmd.service
-systemctl start slurmd.service
-systemctl status slurmd.service
-```
-
-On the __master__ node:
-
-```
-systemctl stop slurmctld.service
-systemctl enable slurmctld.service
-systemctl start slurmctld.service
-systemctl status slurmctld.service
+systemctl status ntpd
 ```
 
 
@@ -405,15 +390,36 @@ Terminate the process by Control+C when the testing is OK.
 Start the `slurmdbd` service:
 
 ```
+systemctl stop slurmdbd
 systemctl enable slurmdbd
 systemctl start slurmdbd
 systemctl status slurmdbd
 ```
 
-
-### Final Check
+### Time to turn on Slurm
 
 As the final thing to do, try this:
+
+
+On the computing nodes __node[1-2]__:
+
+```
+systemctl stop slurmd.service
+systemctl enable slurmd.service
+systemctl start slurmd.service
+systemctl status slurmd.service
+```
+
+On the __master__ node:
+
+```
+systemctl stop slurmctld.service
+systemctl enable slurmctld.service
+systemctl start slurmctld.service
+systemctl status slurmctld.service
+```
+
+### Final Check 
 
 ```
 systemctl stop slurmctld.service
